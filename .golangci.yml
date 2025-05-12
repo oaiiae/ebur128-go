@@ -435,6 +435,7 @@ linters:
       - path: '_test\.go'
         linters:
           - bodyclose
+          - depguard
           - dupl
           - errcheck
           - funlen
