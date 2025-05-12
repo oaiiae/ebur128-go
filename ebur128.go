@@ -106,7 +106,7 @@ func GetVersion() (major, minor, patch int) {
 // State contains information about the state of a loudness measurement.
 type State C.ebur128_state
 
-// c is a helper method to return the underlying handler
+// c is a helper method to return the underlying [C.ebur128_state].
 func (s *State) c() *C.ebur128_state { return (*C.ebur128_state)(s) }
 
 // Init returns an initialized library state.
@@ -124,7 +124,7 @@ func Init(channels uint, sampleRate uint64, mode int) (s *State, err error) {
 // Destroy library state.
 func (s *State) Destroy() {
 	cst := s.c()
-	C.ebur128_destroy(&cst)
+	C.ebur128_destroy(&cst) //nolint: gocritic // false positive, see: https://github.com/go-critic/go-critic/issues/897
 }
 
 // e is a helper function to convert values returned by the library to valid Go errors
@@ -206,19 +206,19 @@ func (s *State) AddFramesShort(src []int16, frames uint64) (err error) {
 	return
 }
 
-// See [State.AddFramesShort]
+// See [State.AddFramesShort].
 func (s *State) AddFramesInt(src []int32, frames uint64) (err error) {
 	err = e(C.ebur128_add_frames_int(s.c(), (*C.int)(unsafe.SliceData(src)), C.ulong(frames)))
 	return
 }
 
-// See [State.AddFramesShort]
+// See [State.AddFramesShort].
 func (s *State) AddFramesFloat(src []float32, frames uint64) (err error) {
 	err = e(C.ebur128_add_frames_float(s.c(), (*C.float)(unsafe.SliceData(src)), C.ulong(frames)))
 	return
 }
 
-// See [State.AddFramesShort]
+// See [State.AddFramesShort].
 func (s *State) AddFramesDouble(src []float64, frames uint64) (err error) {
 	err = e(C.ebur128_add_frames_double(s.c(), (*C.double)(unsafe.SliceData(src)), C.ulong(frames)))
 	return
