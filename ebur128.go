@@ -275,7 +275,7 @@ func (s *State) LoudnessWindow(window time.Duration) (float64, error) {
 	return float64(out), newError(rc)
 }
 
-// LoudnessRange returns loudness range (LRA) of program in LUFS.
+// LoudnessRange returns loudness range (LRA) of program in LU.
 // Calculates loudness range according to EBU 3342.
 //
 // Returns [ErrInvalidMode] if mode [ModeLRA] has not been set.
@@ -359,5 +359,35 @@ func (s *State) PrevTruePeak(channelNumber uint) (float64, error) {
 func (s *State) RelativeThreshold() (float64, error) {
 	var out C.double
 	rc := C.ebur128_relative_threshold(s.c(), &out)
+	return float64(out), newError(rc)
+}
+
+type States []*State
+
+// c is a helper method to return the [States] as a "slice" of [C.ebur128_state].
+func (sts States) c() (**C.ebur128_state, C.size_t) {
+	ptr, size := unsafe.SliceData(sts), len(sts)
+	return (**C.ebur128_state)(unsafe.Pointer(ptr)), C.size_t(size)
+}
+
+// LoudnessGlobal returns global integrated loudness in LUFS across multiple instances.
+//
+// Returns [ErrInvalidMode] if mode [ModeI] has not been set.
+func (sts States) LoudnessGlobal() (float64, error) {
+	states, size := sts.c()
+	var out C.double
+	rc := C.ebur128_loudness_global_multiple(states, size, &out)
+	return float64(out), newError(rc)
+}
+
+// LoudnessRange returns loudness range (LRA) in LU across multiple instances.
+// Calculates loudness range according to EBU 3342.
+//
+// Returns [ErrInvalidMode] if mode [ModeLRA] has not been set.
+// [ErrNomem] on memory allocation error.
+func (sts States) LoudnessRange() (float64, error) {
+	states, size := sts.c()
+	var out C.double
+	rc := C.ebur128_loudness_range_multiple(states, size, &out)
 	return float64(out), newError(rc)
 }
