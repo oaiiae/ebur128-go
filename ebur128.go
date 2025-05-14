@@ -171,7 +171,7 @@ func (s *State) ChangeParameters(channels uint, sampleRate uint64) error {
 	return newError(rc)
 }
 
-// SetMaxWindow sets the maximum window duration that will be used for [State.LoudnessWindow].
+// SetMaxWindow sets the maximum window duration (ms precision) that will be used for [State.LoudnessWindow].
 // Note that this destroys the current content of the audio buffer.
 //
 // Returns [ErrNomem] on memory allocation error. The state will be invalid
@@ -181,7 +181,7 @@ func (s *State) SetMaxWindow(window time.Duration) error {
 	return newError(rc)
 }
 
-// SetMaxHistory sets the maximum history duration that will be stored for loudness integration.
+// SetMaxHistory sets the maximum history duration (ms precision) that will be stored for loudness integration.
 // More history provides more accurate results, but requires more resources.
 //
 // Applies to [State.LoudnessRange] and [State.LoudnessGlobal] when
@@ -251,15 +251,15 @@ func (s *State) LoudnessShortterm() (float64, error) {
 	return float64(out), newError(rc)
 }
 
-// LoudnessWindow returns loudness of the specified window (milliseconds) in LUFS.
+// LoudnessWindow returns loudness of the specified window (ms precision) in LUFS.
 //
 // window must not be larger than the current window set in state.
 // The current window can be changed by calling [State.SetMaxWindow].
 //
 // Returns [ErrInvalidMode] if window larger than current window in state.
-func (s *State) LoudnessWindow(window uint) (float64, error) {
+func (s *State) LoudnessWindow(window time.Duration) (float64, error) {
 	var out C.double
-	rc := C.ebur128_loudness_window(s.c(), C.ulong(window), &out)
+	rc := C.ebur128_loudness_window(s.c(), C.ulong(window.Milliseconds()), &out)
 	return float64(out), newError(rc)
 }
 
