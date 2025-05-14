@@ -177,6 +177,10 @@ func (s *State) ChangeParameters(channels uint, sampleRate uint64) error {
 // Returns [ErrNomem] on memory allocation error. The state will be invalid
 // and must be destroyed. [ErrNoChange] if window duration not changed.
 func (s *State) SetMaxWindow(window time.Duration) error {
+	if window < 0 {
+		panic("negative window duration")
+	}
+
 	rc := C.ebur128_set_max_window(s.c(), C.ulong(window.Milliseconds()))
 	return newError(rc)
 }
@@ -192,6 +196,10 @@ func (s *State) SetMaxWindow(window time.Duration) error {
 //
 // Returns [ErrNoChange] if history not changed.
 func (s *State) SetMaxHistory(history time.Duration) error {
+	if history < 0 {
+		panic("negative history duration")
+	}
+
 	rc := C.ebur128_set_max_history(s.c(), C.ulong(history.Milliseconds()))
 	return newError(rc)
 }
@@ -258,6 +266,10 @@ func (s *State) LoudnessShortterm() (float64, error) {
 //
 // Returns [ErrInvalidMode] if window larger than current window in state.
 func (s *State) LoudnessWindow(window time.Duration) (float64, error) {
+	if window < 0 {
+		panic("negative window duration")
+	}
+
 	var out C.double
 	rc := C.ebur128_loudness_window(s.c(), C.ulong(window.Milliseconds()), &out)
 	return float64(out), newError(rc)
