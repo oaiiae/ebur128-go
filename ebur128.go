@@ -77,10 +77,20 @@ func (e ebur128Error) Error() string {
 	case C.EBUR128_ERROR_NO_CHANGE:
 		return "ebur128: no change"
 	case C.EBUR128_SUCCESS:
-		panic("ebur128: success is not an error")
+		return "ebur128: success"
 	default:
 		return "ebur128: unknown error"
 	}
+}
+
+// newError returns a new [ebur128Error] from libebur128 error codes.
+//
+//go:inline
+func newError(rc C.int) error {
+	if rc == C.EBUR128_SUCCESS {
+		return nil
+	}
+	return ebur128Error(rc)
 }
 
 // Modes
@@ -127,16 +137,6 @@ func (s *State) Destroy() {
 	C.ebur128_destroy(&cst) //nolint: gocritic // false positive, see: https://github.com/go-critic/go-critic/issues/897
 }
 
-// e is a helper function to convert values returned by the library to valid Go errors
-//
-//go:inline
-func e(rc C.int) (err error) {
-	if rc != C.EBUR128_SUCCESS {
-		err = ebur128Error(rc)
-	}
-	return
-}
-
 // SetChannel sets channel type. The default is:
 //   - 0 -> [Left]
 //   - 1 -> [Right]
@@ -151,7 +151,7 @@ func e(rc C.int) (err error) {
 //
 // Returns [ErrInvalidChannelIndex] if invalid channel index.
 func (s *State) SetChannel(channelNumber uint, value int) (err error) {
-	err = e(C.ebur128_set_channel(s.c(), C.uint(channelNumber), C.int(value)))
+	err = newError(C.ebur128_set_channel(s.c(), C.uint(channelNumber), C.int(value)))
 	return
 }
 
@@ -167,7 +167,7 @@ func (s *State) SetChannel(channelNumber uint, value int) (err error) {
 // Returns [ErrNomem] on memory allocation error. The state will be invalid and
 // must be destroyed. [ErrNoChange] if channels and sample rate were not changed.
 func (s *State) ChangeParameters(channels uint, sampleRate uint64) (err error) {
-	err = e(C.ebur128_change_parameters(s.c(), C.uint(channels), C.ulong(sampleRate)))
+	err = newError(C.ebur128_change_parameters(s.c(), C.uint(channels), C.ulong(sampleRate)))
 	return
 }
 
@@ -177,7 +177,7 @@ func (s *State) ChangeParameters(channels uint, sampleRate uint64) (err error) {
 // Returns [ErrNomem] on memory allocation error. The state will be invalid
 // and must be destroyed. [ErrNoChange] if window duration not changed.
 func (s *State) SetMaxWindow(window time.Duration) (err error) {
-	err = e(C.ebur128_set_max_window(s.c(), C.ulong(window.Milliseconds())))
+	err = newError(C.ebur128_set_max_window(s.c(), C.ulong(window.Milliseconds())))
 	return
 }
 
@@ -192,7 +192,7 @@ func (s *State) SetMaxWindow(window time.Duration) (err error) {
 //
 // Returns [ErrNoChange] if history not changed.
 func (s *State) SetMaxHistory(history time.Duration) (err error) {
-	err = e(C.ebur128_set_max_history(s.c(), C.ulong(history.Milliseconds())))
+	err = newError(C.ebur128_set_max_history(s.c(), C.ulong(history.Milliseconds())))
 	return
 }
 
@@ -202,25 +202,25 @@ func (s *State) SetMaxHistory(history time.Duration) (err error) {
 //
 // Returns [ErrNomem] on memory allocation error.
 func (s *State) AddFramesShort(src []int16, frames uint64) (err error) {
-	err = e(C.ebur128_add_frames_short(s.c(), (*C.short)(unsafe.SliceData(src)), C.ulong(frames)))
+	err = newError(C.ebur128_add_frames_short(s.c(), (*C.short)(unsafe.SliceData(src)), C.ulong(frames)))
 	return
 }
 
 // See [State.AddFramesShort].
 func (s *State) AddFramesInt(src []int32, frames uint64) (err error) {
-	err = e(C.ebur128_add_frames_int(s.c(), (*C.int)(unsafe.SliceData(src)), C.ulong(frames)))
+	err = newError(C.ebur128_add_frames_int(s.c(), (*C.int)(unsafe.SliceData(src)), C.ulong(frames)))
 	return
 }
 
 // See [State.AddFramesShort].
 func (s *State) AddFramesFloat(src []float32, frames uint64) (err error) {
-	err = e(C.ebur128_add_frames_float(s.c(), (*C.float)(unsafe.SliceData(src)), C.ulong(frames)))
+	err = newError(C.ebur128_add_frames_float(s.c(), (*C.float)(unsafe.SliceData(src)), C.ulong(frames)))
 	return
 }
 
 // See [State.AddFramesShort].
 func (s *State) AddFramesDouble(src []float64, frames uint64) (err error) {
-	err = e(C.ebur128_add_frames_double(s.c(), (*C.double)(unsafe.SliceData(src)), C.ulong(frames)))
+	err = newError(C.ebur128_add_frames_double(s.c(), (*C.double)(unsafe.SliceData(src)), C.ulong(frames)))
 	return
 }
 
@@ -228,7 +228,7 @@ func (s *State) AddFramesDouble(src []float64, frames uint64) (err error) {
 //
 // Returns [ErrInvalidMode] if mode [ModeI] has not been set.
 func (s *State) LoudnessGlobal() (out float64, err error) {
-	err = e(C.ebur128_loudness_global(s.c(), (*C.double)(&out)))
+	err = newError(C.ebur128_loudness_global(s.c(), (*C.double)(&out)))
 	return
 }
 
@@ -236,7 +236,7 @@ func (s *State) LoudnessGlobal() (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if mode [ModeM] has not been set.
 func (s *State) LoudnessMomentary() (out float64, err error) {
-	err = e(C.ebur128_loudness_momentary(s.c(), (*C.double)(&out)))
+	err = newError(C.ebur128_loudness_momentary(s.c(), (*C.double)(&out)))
 	return
 }
 
@@ -244,7 +244,7 @@ func (s *State) LoudnessMomentary() (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if mode [ModeS] has not been set.
 func (s *State) LoudnessShortterm() (out float64, err error) {
-	err = e(C.ebur128_loudness_shortterm(s.c(), (*C.double)(&out)))
+	err = newError(C.ebur128_loudness_shortterm(s.c(), (*C.double)(&out)))
 	return
 }
 
@@ -255,7 +255,7 @@ func (s *State) LoudnessShortterm() (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if window larger than current window in state.
 func (s *State) LoudnessWindow(window uint) (out float64, err error) {
-	err = e(C.ebur128_loudness_window(s.c(), C.ulong(window), (*C.double)(&out)))
+	err = newError(C.ebur128_loudness_window(s.c(), C.ulong(window), (*C.double)(&out)))
 	return
 }
 
@@ -265,7 +265,7 @@ func (s *State) LoudnessWindow(window uint) (out float64, err error) {
 // Returns [ErrInvalidMode] if mode [ModeLRA] has not been set.
 // [ErrNomem] on memory allocation error.
 func (s *State) LoudnessRange() (out float64, err error) {
-	err = e(C.ebur128_loudness_range(s.c(), (*C.double)(&out)))
+	err = newError(C.ebur128_loudness_range(s.c(), (*C.double)(&out)))
 	return
 }
 
@@ -277,7 +277,7 @@ func (s *State) LoudnessRange() (out float64, err error) {
 // Returns [ErrInvalidMode] if [ModeSamplePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
 func (s *State) SamplePeak(channelNumber uint) (out float64, err error) {
-	err = e(C.ebur128_sample_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
+	err = newError(C.ebur128_sample_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
 	return
 }
 
@@ -289,7 +289,7 @@ func (s *State) SamplePeak(channelNumber uint) (out float64, err error) {
 // Returns [ErrInvalidMode] if [ModeSamplePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
 func (s *State) PrevSamplePeak(channelNumber uint) (out float64, err error) {
-	err = e(C.ebur128_prev_sample_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
+	err = newError(C.ebur128_prev_sample_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
 	return
 }
 
@@ -308,7 +308,7 @@ func (s *State) PrevSamplePeak(channelNumber uint) (out float64, err error) {
 // Returns [ErrInvalidMode] if [ModeTruePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
 func (s *State) TruePeak(channelNumber uint) (out float64, err error) {
-	err = e(C.ebur128_true_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
+	err = newError(C.ebur128_true_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
 	return
 }
 
@@ -328,7 +328,7 @@ func (s *State) TruePeak(channelNumber uint) (out float64, err error) {
 // Returns [ErrInvalidMode] if [ModeTruePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
 func (s *State) PrevTruePeak(channelNumber uint) (out float64, err error) {
-	err = e(C.ebur128_prev_true_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
+	err = newError(C.ebur128_prev_true_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
 	return
 }
 
@@ -336,6 +336,6 @@ func (s *State) PrevTruePeak(channelNumber uint) (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if mode [ModeI] has not been set.
 func (s *State) RelativeThreshold() (out float64, err error) {
-	err = e(C.ebur128_relative_threshold(s.c(), (*C.double)(&out)))
+	err = newError(C.ebur128_relative_threshold(s.c(), (*C.double)(&out)))
 	return
 }
