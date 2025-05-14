@@ -107,7 +107,7 @@ const (
 )
 
 // GetVersion returns library version number.
-func GetVersion() (major, minor, patch int) {
+func GetVersion() (major, minor, patch int) { //nolint: nonamedreturns // names help understanding the returned info
 	var x, y, z C.int
 	C.ebur128_get_version(&x, &y, &z)
 	return int(x), int(y), int(z)
@@ -123,12 +123,12 @@ func (s *State) c() *C.ebur128_state { return (*C.ebur128_state)(s) }
 //   - channels the number of channels.
 //   - samplerate the sample rate.
 //   - mode see the mode enum for possible values.
-func Init(channels uint, sampleRate uint64, mode int) (s *State, err error) {
-	s = (*State)(C.ebur128_init(C.uint(channels), C.ulong(sampleRate), C.int(mode)))
+func Init(channels uint, sampleRate uint64, mode int) (*State, error) {
+	s := C.ebur128_init(C.uint(channels), C.ulong(sampleRate), C.int(mode))
 	if s == nil {
-		err = ErrNomem
+		return nil, ErrNomem
 	}
-	return
+	return (*State)(s), nil
 }
 
 // Destroy library state.
@@ -150,9 +150,9 @@ func (s *State) Destroy() {
 //   - value the channel type.
 //
 // Returns [ErrInvalidChannelIndex] if invalid channel index.
-func (s *State) SetChannel(channelNumber uint, value int) (err error) {
-	err = newError(C.ebur128_set_channel(s.c(), C.uint(channelNumber), C.int(value)))
-	return
+func (s *State) SetChannel(channelNumber uint, value int) error {
+	rc := C.ebur128_set_channel(s.c(), C.uint(channelNumber), C.int(value))
+	return newError(rc)
 }
 
 // ChangeParameters changes library parameters.
@@ -166,9 +166,9 @@ func (s *State) SetChannel(channelNumber uint, value int) (err error) {
 //
 // Returns [ErrNomem] on memory allocation error. The state will be invalid and
 // must be destroyed. [ErrNoChange] if channels and sample rate were not changed.
-func (s *State) ChangeParameters(channels uint, sampleRate uint64) (err error) {
-	err = newError(C.ebur128_change_parameters(s.c(), C.uint(channels), C.ulong(sampleRate)))
-	return
+func (s *State) ChangeParameters(channels uint, sampleRate uint64) error {
+	rc := C.ebur128_change_parameters(s.c(), C.uint(channels), C.ulong(sampleRate))
+	return newError(rc)
 }
 
 // SetMaxWindow sets the maximum window duration that will be used for [State.LoudnessWindow].
@@ -176,9 +176,9 @@ func (s *State) ChangeParameters(channels uint, sampleRate uint64) (err error) {
 //
 // Returns [ErrNomem] on memory allocation error. The state will be invalid
 // and must be destroyed. [ErrNoChange] if window duration not changed.
-func (s *State) SetMaxWindow(window time.Duration) (err error) {
-	err = newError(C.ebur128_set_max_window(s.c(), C.ulong(window.Milliseconds())))
-	return
+func (s *State) SetMaxWindow(window time.Duration) error {
+	rc := C.ebur128_set_max_window(s.c(), C.ulong(window.Milliseconds()))
+	return newError(rc)
 }
 
 // SetMaxHistory sets the maximum history duration that will be stored for loudness integration.
@@ -191,9 +191,9 @@ func (s *State) SetMaxWindow(window time.Duration) (err error) {
 // Minimum is 3000ms for [ModeLRA] and 400ms for [ModeM].
 //
 // Returns [ErrNoChange] if history not changed.
-func (s *State) SetMaxHistory(history time.Duration) (err error) {
-	err = newError(C.ebur128_set_max_history(s.c(), C.ulong(history.Milliseconds())))
-	return
+func (s *State) SetMaxHistory(history time.Duration) error {
+	rc := C.ebur128_set_max_history(s.c(), C.ulong(history.Milliseconds()))
+	return newError(rc)
 }
 
 // AddFramesShort adds frames to be processed.
@@ -201,51 +201,54 @@ func (s *State) SetMaxHistory(history time.Duration) (err error) {
 //   - frames number of frames. Not number of samples!
 //
 // Returns [ErrNomem] on memory allocation error.
-func (s *State) AddFramesShort(src []int16, frames uint64) (err error) {
-	err = newError(C.ebur128_add_frames_short(s.c(), (*C.short)(unsafe.SliceData(src)), C.ulong(frames)))
-	return
+func (s *State) AddFramesShort(src []int16, frames uint64) error {
+	rc := C.ebur128_add_frames_short(s.c(), (*C.short)(unsafe.SliceData(src)), C.ulong(frames))
+	return newError(rc)
 }
 
 // See [State.AddFramesShort].
-func (s *State) AddFramesInt(src []int32, frames uint64) (err error) {
-	err = newError(C.ebur128_add_frames_int(s.c(), (*C.int)(unsafe.SliceData(src)), C.ulong(frames)))
-	return
+func (s *State) AddFramesInt(src []int32, frames uint64) error {
+	rc := C.ebur128_add_frames_int(s.c(), (*C.int)(unsafe.SliceData(src)), C.ulong(frames))
+	return newError(rc)
 }
 
 // See [State.AddFramesShort].
-func (s *State) AddFramesFloat(src []float32, frames uint64) (err error) {
-	err = newError(C.ebur128_add_frames_float(s.c(), (*C.float)(unsafe.SliceData(src)), C.ulong(frames)))
-	return
+func (s *State) AddFramesFloat(src []float32, frames uint64) error {
+	rc := C.ebur128_add_frames_float(s.c(), (*C.float)(unsafe.SliceData(src)), C.ulong(frames))
+	return newError(rc)
 }
 
 // See [State.AddFramesShort].
-func (s *State) AddFramesDouble(src []float64, frames uint64) (err error) {
-	err = newError(C.ebur128_add_frames_double(s.c(), (*C.double)(unsafe.SliceData(src)), C.ulong(frames)))
-	return
+func (s *State) AddFramesDouble(src []float64, frames uint64) error {
+	rc := C.ebur128_add_frames_double(s.c(), (*C.double)(unsafe.SliceData(src)), C.ulong(frames))
+	return newError(rc)
 }
 
 // LoudnessGlobal returns global integrated loudness in LUFS.
 //
 // Returns [ErrInvalidMode] if mode [ModeI] has not been set.
-func (s *State) LoudnessGlobal() (out float64, err error) {
-	err = newError(C.ebur128_loudness_global(s.c(), (*C.double)(&out)))
-	return
+func (s *State) LoudnessGlobal() (float64, error) {
+	var out C.double
+	rc := C.ebur128_loudness_global(s.c(), &out)
+	return float64(out), newError(rc)
 }
 
 // LoudnessMomentary returns momentary loudness (last 400ms) in LUFS.
 //
 // Returns [ErrInvalidMode] if mode [ModeM] has not been set.
-func (s *State) LoudnessMomentary() (out float64, err error) {
-	err = newError(C.ebur128_loudness_momentary(s.c(), (*C.double)(&out)))
-	return
+func (s *State) LoudnessMomentary() (float64, error) {
+	var out C.double
+	rc := C.ebur128_loudness_momentary(s.c(), &out)
+	return float64(out), newError(rc)
 }
 
 // LoudnessShortterm returns short-term loudness (last 3s) in LUFS.
 //
 // Returns [ErrInvalidMode] if mode [ModeS] has not been set.
-func (s *State) LoudnessShortterm() (out float64, err error) {
-	err = newError(C.ebur128_loudness_shortterm(s.c(), (*C.double)(&out)))
-	return
+func (s *State) LoudnessShortterm() (float64, error) {
+	var out C.double
+	rc := C.ebur128_loudness_shortterm(s.c(), &out)
+	return float64(out), newError(rc)
 }
 
 // LoudnessWindow returns loudness of the specified window (milliseconds) in LUFS.
@@ -254,9 +257,10 @@ func (s *State) LoudnessShortterm() (out float64, err error) {
 // The current window can be changed by calling [State.SetMaxWindow].
 //
 // Returns [ErrInvalidMode] if window larger than current window in state.
-func (s *State) LoudnessWindow(window uint) (out float64, err error) {
-	err = newError(C.ebur128_loudness_window(s.c(), C.ulong(window), (*C.double)(&out)))
-	return
+func (s *State) LoudnessWindow(window uint) (float64, error) {
+	var out C.double
+	rc := C.ebur128_loudness_window(s.c(), C.ulong(window), &out)
+	return float64(out), newError(rc)
 }
 
 // LoudnessRange returns loudness range (LRA) of program in LUFS.
@@ -264,9 +268,10 @@ func (s *State) LoudnessWindow(window uint) (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if mode [ModeLRA] has not been set.
 // [ErrNomem] on memory allocation error.
-func (s *State) LoudnessRange() (out float64, err error) {
-	err = newError(C.ebur128_loudness_range(s.c(), (*C.double)(&out)))
-	return
+func (s *State) LoudnessRange() (float64, error) {
+	var out C.double
+	rc := C.ebur128_loudness_range(s.c(), &out)
+	return float64(out), newError(rc)
 }
 
 // SamplePeak returns maximum sample linear peak from all frames that
@@ -276,9 +281,10 @@ func (s *State) LoudnessRange() (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if [ModeSamplePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
-func (s *State) SamplePeak(channelNumber uint) (out float64, err error) {
-	err = newError(C.ebur128_sample_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
-	return
+func (s *State) SamplePeak(channelNumber uint) (float64, error) {
+	var out C.double
+	rc := C.ebur128_sample_peak(s.c(), C.uint(channelNumber), &out)
+	return float64(out), newError(rc)
 }
 
 // PrevSamplePeak returns maximum sample linear peak from the last call
@@ -288,9 +294,10 @@ func (s *State) SamplePeak(channelNumber uint) (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if [ModeSamplePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
-func (s *State) PrevSamplePeak(channelNumber uint) (out float64, err error) {
-	err = newError(C.ebur128_prev_sample_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
-	return
+func (s *State) PrevSamplePeak(channelNumber uint) (float64, error) {
+	var out C.double
+	rc := C.ebur128_prev_sample_peak(s.c(), C.uint(channelNumber), &out)
+	return float64(out), newError(rc)
 }
 
 // TruePeak returns maximum true peak from all frames that have been processed for given channelNumber.
@@ -307,9 +314,10 @@ func (s *State) PrevSamplePeak(channelNumber uint) (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if [ModeTruePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
-func (s *State) TruePeak(channelNumber uint) (out float64, err error) {
-	err = newError(C.ebur128_true_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
-	return
+func (s *State) TruePeak(channelNumber uint) (float64, error) {
+	var out C.double
+	rc := C.ebur128_true_peak(s.c(), C.uint(channelNumber), &out)
+	return float64(out), newError(rc)
 }
 
 // PrevTruePeak returns maximum true peak from the last call
@@ -327,15 +335,17 @@ func (s *State) TruePeak(channelNumber uint) (out float64, err error) {
 //
 // Returns [ErrInvalidMode] if [ModeTruePeak] has not been set.
 // [ErrInvalidChannelIndex] if invalid channel index.
-func (s *State) PrevTruePeak(channelNumber uint) (out float64, err error) {
-	err = newError(C.ebur128_prev_true_peak(s.c(), C.uint(channelNumber), (*C.double)(&out)))
-	return
+func (s *State) PrevTruePeak(channelNumber uint) (float64, error) {
+	var out C.double
+	rc := C.ebur128_prev_true_peak(s.c(), C.uint(channelNumber), &out)
+	return float64(out), newError(rc)
 }
 
 // RelativeThreshold returns relative threshold in LUFS.
 //
 // Returns [ErrInvalidMode] if mode [ModeI] has not been set.
-func (s *State) RelativeThreshold() (out float64, err error) {
-	err = newError(C.ebur128_relative_threshold(s.c(), (*C.double)(&out)))
-	return
+func (s *State) RelativeThreshold() (float64, error) {
+	var out C.double
+	rc := C.ebur128_relative_threshold(s.c(), &out)
+	return float64(out), newError(rc)
 }
