@@ -213,25 +213,25 @@ func (st *State) SetMaxHistory(history time.Duration) error {
 //   - frames number of frames. Not number of samples!
 //
 // Returns [ErrNomem] on memory allocation error.
-func (st *State) AddFramesShort(src []int16, frames uint64) error {
+func (st *State) AddFramesShort(src []int16, frames int) error {
 	rc := C.ebur128_add_frames_short(st.c(), (*C.short)(unsafe.SliceData(src)), C.ulong(frames))
 	return newError(rc)
 }
 
 // See [State.AddFramesShort].
-func (st *State) AddFramesInt(src []int32, frames uint64) error {
+func (st *State) AddFramesInt(src []int32, frames int) error {
 	rc := C.ebur128_add_frames_int(st.c(), (*C.int)(unsafe.SliceData(src)), C.ulong(frames))
 	return newError(rc)
 }
 
 // See [State.AddFramesShort].
-func (st *State) AddFramesFloat(src []float32, frames uint64) error {
+func (st *State) AddFramesFloat(src []float32, frames int) error {
 	rc := C.ebur128_add_frames_float(st.c(), (*C.float)(unsafe.SliceData(src)), C.ulong(frames))
 	return newError(rc)
 }
 
 // See [State.AddFramesShort].
-func (st *State) AddFramesDouble(src []float64, frames uint64) error {
+func (st *State) AddFramesDouble(src []float64, frames int) error {
 	rc := C.ebur128_add_frames_double(st.c(), (*C.double)(unsafe.SliceData(src)), C.ulong(frames))
 	return newError(rc)
 }
