@@ -3,5 +3,5 @@
 {
 	"name": "Go",
 	"image": "mcr.microsoft.com/devcontainers/go:1-1.22-bookworm",
-	"postCreateCommand": "sudo apt-get update -y && sudo apt-get install -y libebur128-dev"
+	"postCreateCommand": "sudo apt-get update -y && sudo apt-get install -y libebur128-dev libsndfile1-dev"
 }
