@@ -15,8 +15,9 @@ import (
 )
 
 // Channels
-//   - Use these values when setting the channel map with [State.SetChannel].
-//   - See definitions in ITU R-REC-BS 1770-4
+//
+// Use these values when setting the channel map with [State.SetChannel].
+// See definitions in ITU R-REC-BS 1770-4
 const (
 	Unused        = C.EBUR128_UNUSED         // unused channel (for example LFE channel)
 	Left          = C.EBUR128_LEFT           //
@@ -93,9 +94,13 @@ func newError(rc C.int) error {
 	return ebur128Error(rc)
 }
 
+// State contains information about the state of a loudness measurement.
+type State C.ebur128_state
+
 // Modes
-//   - Use these values in [Init] (or'ed). Try to use the lowest possible.
-//   - modes that suit your needs, as performance will be better.
+//
+// Use these values in [Init] (or'ed). Try to use the lowest possible
+// modes that suit your needs, as performance will be better.
 const (
 	ModeM          = C.EBUR128_MODE_M           // can call [State.LoudnessMomentary]
 	ModeS          = C.EBUR128_MODE_S           // can call [State.LoudnessShortterm]
@@ -113,13 +118,10 @@ func GetVersion() (major, minor, patch int) { //nolint: nonamedreturns // names 
 	return int(x), int(y), int(z)
 }
 
-// State contains information about the state of a loudness measurement.
-type State C.ebur128_state
-
 // c is a helper method to return the underlying [C.ebur128_state].
 func (st *State) c() *C.ebur128_state { return (*C.ebur128_state)(st) }
 
-// Init returns an initialized library state.
+// Init initializes library [State].
 //   - channels the number of channels.
 //   - samplerate the sample rate.
 //   - mode see the mode enum for possible values.
@@ -131,13 +133,15 @@ func Init(channels uint, sampleRate uint64, mode int) (*State, error) {
 	return (*State)(st), nil
 }
 
-// Destroy library state.
+// Destroy destroys library [State].
 func (st *State) Destroy() {
 	cst := st.c()
 	C.ebur128_destroy(&cst) //nolint: gocritic // false positive, see: https://github.com/go-critic/go-critic/issues/897
 }
 
-// SetChannel sets channel type. The default is:
+// SetChannel sets channel type.
+//
+// The default is:
 //   - 0 -> [Left]
 //   - 1 -> [Right]
 //   - 2 -> [Center]
@@ -232,7 +236,7 @@ func (st *State) AddFramesDouble(src []float64, frames uint64) error {
 	return newError(rc)
 }
 
-// LoudnessGlobal returns global integrated loudness in LUFS.
+// LoudnessGlobal returns global integrated loudness in LUFS or -HUGE_VAL if result is negative infinity.
 //
 // Returns [ErrInvalidMode] if mode [ModeI] has not been set.
 func (st *State) LoudnessGlobal() (float64, error) {
@@ -241,7 +245,7 @@ func (st *State) LoudnessGlobal() (float64, error) {
 	return float64(out), newError(rc)
 }
 
-// LoudnessMomentary returns momentary loudness (last 400ms) in LUFS.
+// LoudnessMomentary returns momentary loudness (last 400ms) in LUFS or -HUGE_VAL if result is negative infinity.
 //
 // Returns [ErrInvalidMode] if mode [ModeM] has not been set.
 func (st *State) LoudnessMomentary() (float64, error) {
@@ -250,7 +254,7 @@ func (st *State) LoudnessMomentary() (float64, error) {
 	return float64(out), newError(rc)
 }
 
-// LoudnessShortterm returns short-term loudness (last 3s) in LUFS.
+// LoudnessShortterm returns short-term loudness (last 3s) in LUFS or or -HUGE_VAL if result is negative infinity.
 //
 // Returns [ErrInvalidMode] if mode [ModeS] has not been set.
 func (st *State) LoudnessShortterm() (float64, error) {
@@ -259,7 +263,7 @@ func (st *State) LoudnessShortterm() (float64, error) {
 	return float64(out), newError(rc)
 }
 
-// LoudnessWindow returns loudness of the specified window (ms precision) in LUFS.
+// LoudnessWindow returns loudness of the specified window (ms precision) in LUFS or -HUGE_VAL if result is negative infinity.
 //
 // window must not be larger than the current window set in state.
 // The current window can be changed by calling [State.SetMaxWindow].
@@ -370,7 +374,7 @@ func (sts States) c() (**C.ebur128_state, C.size_t) {
 	return (**C.ebur128_state)(unsafe.Pointer(ptr)), C.size_t(size)
 }
 
-// LoudnessGlobal returns global integrated loudness in LUFS across multiple instances.
+// LoudnessGlobal returns global integrated loudness in LUFS or -HUGE_VAL if result is negative infinity across multiple instances.
 //
 // Returns [ErrInvalidMode] if mode [ModeI] has not been set.
 func (sts States) LoudnessGlobal() (float64, error) {
