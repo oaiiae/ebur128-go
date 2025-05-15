@@ -30,7 +30,7 @@ func ExampleState_LoudnessMomentary() {
 	defer s.Destroy()
 
 	samples := fill(make([]float64, 20000), 20, 4)
-	err = s.AddFramesDouble(samples, uint64(len(samples)))
+	err = s.AddFramesDouble(samples, len(samples))
 	if err != nil {
 		panic(err)
 	}
