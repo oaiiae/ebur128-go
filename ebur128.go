@@ -17,7 +17,7 @@ import (
 // Channels
 //
 // Use these values when setting the channel map with [State.SetChannel].
-// See definitions in ITU R-REC-BS 1770-4
+// See definitions in ITU R-REC-BS 1770-4.
 const (
 	Unused        = C.EBUR128_UNUSED         // unused channel (for example LFE channel)
 	Left          = C.EBUR128_LEFT           //
@@ -218,19 +218,19 @@ func (st *State) AddFramesShort(src []int16, frames int) error {
 	return newError(rc)
 }
 
-// See [State.AddFramesShort].
+// AddFramesInt is [State.AddFramesShort] for int frames.
 func (st *State) AddFramesInt(src []int32, frames int) error {
 	rc := C.ebur128_add_frames_int(st.c(), (*C.int)(unsafe.SliceData(src)), C.ulong(frames))
 	return newError(rc)
 }
 
-// See [State.AddFramesShort].
+// AddFramesFloat is [State.AddFramesShort] for float frames.
 func (st *State) AddFramesFloat(src []float32, frames int) error {
 	rc := C.ebur128_add_frames_float(st.c(), (*C.float)(unsafe.SliceData(src)), C.ulong(frames))
 	return newError(rc)
 }
 
-// See [State.AddFramesShort].
+// AddFramesDouble is [State.AddFramesShort] for double frames.
 func (st *State) AddFramesDouble(src []float64, frames int) error {
 	rc := C.ebur128_add_frames_double(st.c(), (*C.double)(unsafe.SliceData(src)), C.ulong(frames))
 	return newError(rc)
